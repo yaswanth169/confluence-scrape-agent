@@ -86,12 +86,12 @@ class PDFGeneratorAgent:
 class ConfluenceScraperTool(BaseTool):
     """Tool for scraping Confluence spaces."""
     
-    name: str = "confluence_scraper"
-    description: str = "Scrapes all pages from a specified Confluence space"
-    
     def __init__(self, scraper: ConfluenceScraper):
-        super().__init__()
         self.scraper = scraper
+        super().__init__(
+            name="confluence_scraper",
+            description="Scrapes all pages from a specified Confluence space"
+        )
     
     def _run(self, space_key: str) -> str:
         """Scrape a Confluence space."""
@@ -104,12 +104,12 @@ class ConfluenceScraperTool(BaseTool):
 class SpaceListTool(BaseTool):
     """Tool for listing available Confluence spaces."""
     
-    name: str = "list_spaces"
-    description: str = "Lists all accessible Confluence spaces"
-    
     def __init__(self, scraper: ConfluenceScraper):
-        super().__init__()
         self.scraper = scraper
+        super().__init__(
+            name="list_spaces",
+            description="Lists all accessible Confluence spaces"
+        )
     
     def _run(self) -> str:
         """List all available spaces."""
@@ -123,12 +123,12 @@ class SpaceListTool(BaseTool):
 class PageSearchTool(BaseTool):
     """Tool for searching Confluence pages."""
     
-    name: str = "search_pages"
-    description: str = "Searches for pages in Confluence using keywords"
-    
     def __init__(self, scraper: ConfluenceScraper):
-        super().__init__()
         self.scraper = scraper
+        super().__init__(
+            name="search_pages",
+            description="Searches for pages in Confluence using keywords"
+        )
     
     def _run(self, query: str, space_key: str = None) -> str:
         """Search for pages using keywords."""
@@ -145,8 +145,11 @@ class PageSearchTool(BaseTool):
 class ContentSearchTool(BaseTool):
     """Tool for searching through scraped content."""
     
-    name: str = "content_search"
-    description: str = "Searches through scraped Confluence content for specific information"
+    def __init__(self):
+        super().__init__(
+            name="content_search",
+            description="Searches through scraped Confluence content for specific information"
+        )
     
     def _run(self, query: str, output_dir: str = None) -> str:
         """Search through scraped content."""
@@ -199,8 +202,11 @@ class ContentSearchTool(BaseTool):
 class PageAnalysisTool(BaseTool):
     """Tool for analyzing specific page content."""
     
-    name: str = "analyze_page"
-    description: str = "Analyzes and summarizes content from a specific page"
+    def __init__(self):
+        super().__init__(
+            name="analyze_page",
+            description="Analyzes and summarizes content from a specific page"
+        )
     
     def _run(self, page_id: str, output_dir: str = None) -> str:
         """Analyze a specific page."""
@@ -264,8 +270,11 @@ class PageAnalysisTool(BaseTool):
 class KnowledgeQueryTool(BaseTool):
     """Tool for answering knowledge-based queries."""
     
-    name: str = "knowledge_query"
-    description: str = "Answers questions based on scraped Confluence knowledge"
+    def __init__(self):
+        super().__init__(
+            name="knowledge_query",
+            description="Answers questions based on scraped Confluence knowledge"
+        )
     
     def _run(self, question: str, output_dir: str = None) -> str:
         """Answer a knowledge-based question."""
@@ -338,8 +347,11 @@ class KnowledgeQueryTool(BaseTool):
 class PDFGenerationTool(BaseTool):
     """Tool for generating PDF documents."""
     
-    name: str = "generate_pdf"
-    description: str = "Generates PDF documents from Confluence content"
+    def __init__(self):
+        super().__init__(
+            name="generate_pdf",
+            description="Generates PDF documents from Confluence content"
+        )
     
     def _run(self, content_data: str, output_filename: str, output_dir: str = None) -> str:
         """Generate a PDF document."""
@@ -384,8 +396,11 @@ class PDFGenerationTool(BaseTool):
 class MarkdownGenerationTool(BaseTool):
     """Tool for generating Markdown documents."""
     
-    name: str = "generate_markdown"
-    description: str = "Generates Markdown documents from Confluence content"
+    def __init__(self):
+        super().__init__(
+            name="generate_markdown",
+            description="Generates Markdown documents from Confluence content"
+        )
     
     def _run(self, content_data: str, output_filename: str, output_dir: str = None) -> str:
         """Generate a Markdown document."""
@@ -430,8 +445,11 @@ class MarkdownGenerationTool(BaseTool):
 class DocumentStructureTool(BaseTool):
     """Tool for structuring documents."""
     
-    name: str = "structure_document"
-    description: str = "Structures and organizes content for document generation"
+    def __init__(self):
+        super().__init__(
+            name="structure_document",
+            description="Structures and organizes content for document generation"
+        )
     
     def _run(self, content_data: str, structure_type: str = "standard") -> str:
         """Structure content for document generation."""
