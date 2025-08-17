@@ -1,5 +1,7 @@
 from crewai import Crew, Task
-from agents import ConfluenceScraperAgent, QueryAgent, PDFGeneratorAgent
+from scraper_agent import ConfluenceScraperAgent
+from query_agent import QueryAgent
+from pdf_generator_agent import PDFGeneratorAgent
 from config import Config
 from llama_handler import llama_handler
 import logging
@@ -48,201 +50,148 @@ class ConfluenceCrewManager:
             
             Expected output: A comprehensive dataset containing all pages, their content, 
             metadata, and any attachments from the space.
+            
+            Space key: {space_key}
+            Maximum pages: {self.config.MAX_PAGES_PER_SPACE}
+            Include attachments: {self.config.INCLUDE_ATTACHMENTS}
+            Include comments: {self.config.INCLUDE_COMMENTS}
+            Output directory: {self.config.OUTPUT_DIR}
             """,
             agent=self.scraper_agent,
-            expected_output="""A detailed report confirming successful scraping of the space, 
-            including the number of pages processed, any errors encountered, and the location 
-            where the data has been saved."""
+            expected_output="JSON data representing the scraped content from the space"
         )
         
-        # Task 2: Analyze scraped data
-        analysis_task = Task(
-            description=f"""
-            Analyze the scraped data from space '{space_key}' to understand the content structure.
-            
-            Your responsibilities:
-            1. Review the scraped data for completeness
-            2. Identify key themes and topics covered
-            3. Analyze the content hierarchy and relationships
-            4. Identify any missing or incomplete data
-            5. Provide a summary of the content coverage
-            
-            Expected output: A comprehensive analysis report of the scraped content including 
-            content summary, key themes, and data quality assessment.
-            """,
-            agent=self.query_agent,
-            expected_output="""An analysis report containing:
-            - Content overview and summary
-            - Key themes and topics identified
-            - Content hierarchy analysis
-            - Data quality assessment
-            - Recommendations for any additional scraping if needed."""
-        )
-        
-        # Create the crew
+        # Create crew
         crew = Crew(
-            agents=[self.scraper_agent, self.query_agent],
-            tasks=[scraping_task, analysis_task],
-            verbose=True,
-            memory=True
+            agents=[self.scraper_agent],
+            tasks=[scraping_task],
+            verbose=2
         )
         
+        logger.info(f"Created scraping crew for space: {space_key}")
         return crew
     
     def create_query_crew(self, query: str, space_key: str = None) -> Crew:
-        """Create a crew for answering user queries about scraped data."""
+        """Create a crew for querying scraped Confluence content."""
         
-        # Task 1: Search and analyze content
-        search_task = Task(
+        # Task 1: Process user query
+        query_task = Task(
             description=f"""
-            Search through the scraped Confluence data to find relevant information for the query: '{query}'
+            Analyze the user's query and search through scraped Confluence content to provide 
+            a comprehensive answer.
+            
+            Query: {query}
+            Space (optional): {space_key if space_key else 'All spaces'}
+            Output directory: {self.config.OUTPUT_DIR}
             
             Your responsibilities:
-            1. Search through all scraped content for relevant information
-            2. Analyze the context and relevance of found content
-            3. Synthesize information from multiple sources if needed
-            4. Identify the most relevant and accurate answers
-            5. Provide comprehensive and well-structured responses
+            1. Understand the user's question or information need
+            2. Search through the scraped content to find relevant information
+            3. Synthesize a clear, detailed response to the query
+            4. Include references to source pages where applicable
             
-            Expected output: A detailed answer to the user's query based on the scraped Confluence data.
+            Expected output: A detailed response to the user's query with relevant information 
+            from the Confluence content and source references.
             """,
             agent=self.query_agent,
-            expected_output="""A comprehensive answer that:
-            - Directly addresses the user's query
-            - Provides relevant information from the scraped data
-            - Includes source references where applicable
-            - Is well-structured and easy to understand
-            - Uses the LLaMA model to generate intelligent responses"""
+            expected_output="Detailed response to the user's query"
         )
         
-        # Create the crew
+        # Create crew
         crew = Crew(
             agents=[self.query_agent],
-            tasks=[search_task],
-            verbose=True,
-            memory=True
+            tasks=[query_task],
+            verbose=2
         )
         
+        logger.info(f"Created query crew for query: {query}")
         return crew
     
     def create_document_generation_crew(self, content_summary: str, document_type: str = "pdf") -> Crew:
         """Create a crew for generating documents from scraped content."""
         
-        # Task 1: Structure content for document generation
-        structure_task = Task(
+        # Task 1: Generate document
+        gen_task = Task(
             description=f"""
-            Structure and organize the scraped Confluence content for {document_type.upper()} document generation.
+            Create a professional, well-formatted document from the provided Confluence content summary.
+            
+            Content summary: {content_summary[:200]}...
+            Document type: {document_type}
+            Output directory: {self.config.OUTPUT_DIR}
             
             Your responsibilities:
-            1. Analyze the content summary and organize it logically
-            2. Create a clear document structure with appropriate sections
-            3. Ensure content flows logically and is easy to follow
-            4. Apply professional formatting standards
-            5. Prepare content for the specified document type
+            1. Analyze the content summary or dataset provided
+            2. Structure the content logically for document format
+            3. Generate a polished document in the specified format ({document_type})
+            4. Ensure the document is clear, organized, and visually appealing
             
-            Content to structure: {content_summary}
-            
-            Expected output: Well-structured content ready for {document_type.upper()} generation.
+            Expected output: A file path to the generated document in {document_type} format.
             """,
             agent=self.pdf_agent,
-            expected_output="""Structured content that:
-            - Has clear logical organization
-            - Includes appropriate headings and sections
-            - Follows professional formatting standards
-            - Is optimized for {document_type.upper()} output
-            - Uses the LLaMA model for intelligent content structuring"""
+            expected_output=f"Path to generated {document_type} document"
         )
         
-        # Task 2: Generate the document
-        generation_task = Task(
-            description=f"""
-            Generate a {document_type.upper()} document from the structured content.
-            
-            Your responsibilities:
-            1. Use the structured content to create the final document
-            2. Apply appropriate formatting for the document type
-            3. Ensure the document is professional and well-presented
-            4. Include any necessary metadata or headers
-            5. Save the document to the appropriate output location
-            
-            Expected output: A complete, well-formatted {document_type.upper()} document.
-            """,
-            agent=self.pdf_agent,
-            expected_output="""A complete document that:
-            - Is properly formatted for {document_type.upper()} output
-            - Contains all the structured content
-            - Has professional appearance
-            - Is saved to the correct output location
-            - Uses the LLaMA model for intelligent document generation"""
-        )
-        
-        # Create the crew
+        # Create crew
         crew = Crew(
             agents=[self.pdf_agent],
-            tasks=[structure_task, generation_task],
-            verbose=True,
-            memory=True
+            tasks=[gen_task],
+            verbose=2
         )
         
+        logger.info(f"Created document generation crew for {document_type} document")
         return crew
     
     def run_full_workflow(self, space_key: str, user_query: str = None, generate_document: bool = False) -> dict:
-        """Run the complete workflow: scrape, query, and optionally generate documents."""
+        """Run a full workflow: scrape, query (optional), and generate document (optional)."""
+        result = {
+            "scraping": None,
+            "query": None,
+            "document": None
+        }
         
         try:
-            results = {}
-            
-            # Step 1: Scrape Confluence space
-            logger.info(f"Starting scraping workflow for space: {space_key}")
+            # Step 1: Scrape the space
             scraping_crew = self.create_scraping_crew(space_key)
-            scraping_result = scraping_crew.kickoff()
-            results['scraping'] = scraping_result
+            result["scraping"] = scraping_crew.kickoff()
+            logger.info(f"Completed scraping for space {space_key}")
             
-            # Step 2: Handle user query if provided
+            # Step 2: Process user query if provided
             if user_query:
-                logger.info(f"Processing user query: {user_query}")
                 query_crew = self.create_query_crew(user_query, space_key)
-                query_result = query_crew.kickoff()
-                results['query'] = query_result
+                result["query"] = query_crew.kickoff()
+                logger.info(f"Completed query processing for: {user_query}")
             
             # Step 3: Generate document if requested
             if generate_document:
-                logger.info("Generating document from scraped content")
-                content_summary = str(results.get('query', 'No query results available'))
-                doc_crew = self.create_document_generation_crew(content_summary, "markdown")
-                doc_result = doc_crew.kickoff()
-                results['document'] = doc_result
+                content_summary = result.get("query") or result.get("scraping")
+                if content_summary:
+                    doc_crew = self.create_document_generation_crew(content_summary)
+                    result["document"] = doc_crew.kickoff()
+                    logger.info("Completed document generation")
+                else:
+                    logger.warning("No content available for document generation")
+                    result["document"] = "No content available for document generation"
             
-            logger.info("Full workflow completed successfully")
-            return results
-            
+            return result
         except Exception as e:
-            logger.error(f"Error in full workflow: {str(e)}")
+            logger.error(f"Error in full workflow for space {space_key}: {e}")
             raise
     
     def get_available_spaces(self) -> list:
-        """Get list of available Confluence spaces."""
-        try:
-            scraper = ConfluenceScraperAgent().scraper
-            return scraper.get_spaces()
-        except Exception as e:
-            logger.error(f"Error getting spaces: {str(e)}")
-            return []
+        """Get a list of available Confluence spaces."""
+        # This would be implemented with the scraper directly or through an agent task
+        # For now, we'll return an empty list as placeholder
+        logger.info("Fetching available spaces (placeholder)")
+        return []
     
     def search_content(self, query: str, space_key: str = None) -> dict:
-        """Search through scraped content."""
-        try:
-            query_crew = self.create_query_crew(query, space_key)
-            result = query_crew.kickoff()
-            return {"query": query, "result": result}
-        except Exception as e:
-            logger.error(f"Error searching content: {str(e)}")
-            return {"query": query, "error": str(e)}
+        """Search scraped content for a specific query."""
+        query_crew = self.create_query_crew(query, space_key)
+        result = query_crew.kickoff()
+        return {"query": query, "result": result}
     
     def cleanup(self):
-        """Clean up resources."""
-        try:
-            llama_handler.cleanup()
-            logger.info("Resources cleaned up successfully")
-        except Exception as e:
-            logger.error(f"Error during cleanup: {str(e)}")
+        """Clean up resources used by the crew manager."""
+        logger.info("Cleaning up crew manager resources")
+        # Any cleanup tasks would go here
+        pass
